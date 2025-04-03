@@ -1,0 +1,17 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/Kurale-Regular.ttf",
+      "sha1": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+    },
+    {
+      "path": "assets/fonts/MinecraftTen.ttf",
+      "sha1": "ea76781dde6a1dfde898c92dea501694c30c907d"
+    },
+    {
+      "path": "assets/fonts/Pokemon.ttf",
+      "sha1": "e780bf64f4bf2679e21de7b707a56800f0f31930"
+    }
+  ]
+}

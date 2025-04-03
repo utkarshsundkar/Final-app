@@ -1,0 +1,30 @@
+  onboardingImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+  },
+  onboardingVideo: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+  },
+  userInfoContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  progressCard: {
+    backgroundColor: '#2D2D2D',
+    borderRadius: 10,
+    padding: 10,
+    width: '48%',
+  },
+  mainContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+});
+
+export default App;

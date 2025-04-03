@@ -6,9 +6,10 @@ const EditText = ({
   value = '',
   onChangeText = (text: string) => {},
   editable = true,
+  style = {},
 }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <TextInput
         style={[styles.inputField]}
         placeholder={placeholder}

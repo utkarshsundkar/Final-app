@@ -18,6 +18,14 @@ const exercisesCatalog = [
   { id: '14', name: 'Bicycle Crunches' },
   { id: '15', name: 'Tricep Dips' },
   { id: '16', name: 'Shoulder Press' },
+  { id: '17', name: 'Side Plank' },
+  { id: '18', name: 'High Plank' },
+  { id: '19', name: 'OH Squat' },
+  { id: '20', name: 'Tuck Hold' },
+  { id: '21', name: 'Knee Raise Left' },
+  { id: '22', name: 'Knee Raise Right' },
+  { id: '23', name: 'Side Bend Left' },
+  { id: '24', name: 'Side Bend Right' },
   // Add more exercises as needed
 ];
 

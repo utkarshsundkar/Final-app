@@ -24,6 +24,9 @@ allprojects {
     maven {
       url "${artifactory_contentUrl}"
     }
+    maven {
+      url "https://bitbucket.org/sencyai/android_sdks_release/raw/master"
+    }
   }
 }
 
