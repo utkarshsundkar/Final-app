@@ -7,14 +7,13 @@ require_relative '../node_modules/@react-native-community/cli-platform-ios/nativ
 platform :ios, 15
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+# Force pods to use modular headers
+use_modular_headers!
+
+# Specify the linkage type
+use_frameworks! :linkage => :static
 
 target 'RNSMKitUIDemoApp' do
-  use_frameworks!
   config = use_native_modules!
 
   # Flags change depending on the env values.
@@ -22,12 +21,8 @@ target 'RNSMKitUIDemoApp' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # Hermes is now enabled by default. Disable by setting this flag to false.
-    # Upcoming versions of React Native may rely on get_default_flags(), but
-    # we make it explicit here to aid in the React Native upgrade process.
     :hermes_enabled => flags[:hermes_enabled],
     :fabric_enabled => flags[:fabric_enabled],
-    # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
@@ -37,15 +32,35 @@ target 'RNSMKitUIDemoApp' do
   end
 
   post_install do |installer|
-   react_native_post_install(
-     installer,
-     :mac_catalyst_enabled => false
-   )
-   installer.pods_project.targets.each do |target|
-     target.build_configurations.each do |config|
-       config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-     end
-   end
- end
+    react_native_post_install(
+      installer,
+      :mac_catalyst_enabled => false
+    )
+    
+    # Fix for Xcode 15
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # General settings
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+        
+        # Architecture settings
+        config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+        config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+        
+        # Framework settings
+        config.build_settings['MACH_O_TYPE'] = 'staticlib'
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+        
+        # C++ settings
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)', '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION']
+        
+        # Additional settings for react-native-video
+        if target.name == 'react-native-video'
+          config.build_settings['OTHER_LDFLAGS'] = '$(inherited) -framework AVFoundation -framework CoreMedia'
+        end
+      end
+    end
+  end
 end

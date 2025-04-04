@@ -55,21 +55,14 @@ const App = () => {
   const [customTime, setCustomTime] = useState('35');
   const MAX_CONSISTENCY = 100;
   const [isFirstVisit, setIsFirstVisit] = useState(true);
-  const [selectedPokemon, setSelectedPokemon] = useState('');
-  const [isEvolving, setIsEvolving] = useState(false);
-  const [evolutionVideoVisible, setEvolutionVideoVisible] = useState(false);
-  
-  // Onboarding states
+  const [selectedPokemon, setSelectedPokemon] = useState<string | null>(null);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [showMainApp, setShowMainApp] = useState(false);
   const [selectedPokemonType, setSelectedPokemonType] = useState<string | null>(null);
   const videoRef = useRef(null);
-  const evolutionVideoRef = useRef<any>(null);
-  const [lastResetDate, setLastResetDate] = useState('');
-
-  // Add a state for video loading
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [lastResetDate, setLastResetDate] = useState('');
 
   const configureSMKitUI = async () => {
     try {
@@ -609,7 +602,7 @@ const App = () => {
           case 'Jumping Jacks':
             detectorId = 'JumpingJacks';
             scoringType = SMWorkoutLibrary.ScoringType.Time;
-            targetTime = 10;
+            targetTime = 60;
             uiElements = [SMWorkoutLibrary.UIElement.Timer];
             break;
           case 'Glute Bridge':
@@ -857,18 +850,36 @@ const App = () => {
   // Handle Pokemon selection and save to storage
   const handlePokemonSelect = async (pokemon: string) => {
     try {
-      await AsyncStorage.setItem('selectedPokemon', pokemon);
-      setSelectedPokemon(pokemon);
-      setIsFirstVisit(false);
-      
-      // Start onboarding for any Pokémon
-      if (pokemon === 'Bulbasaur' || pokemon === 'Squirtle' || pokemon === 'Charmander') {
-        setSelectedPokemonType(pokemon);
-        setIsOnboarding(true);
-        setOnboardingStep(0);
-      } else {
-        // Fallback case
-        setShowMainApp(true);
+      // Convert Pokemon name to filename
+      let pokemonFilename = '';
+      switch (pokemon) {
+        case 'Bulbasaur':
+          pokemonFilename = 'balbasaur.png';
+          break;
+        case 'Squirtle':
+          pokemonFilename = 'squirtle-.png';
+          break;
+        case 'Charmander':
+          pokemonFilename = 'charmander-r.png';
+          break;
+        default:
+          pokemonFilename = pokemon;
+      }
+
+      if (pokemonFilename) {
+        await AsyncStorage.setItem('selectedPokemon', pokemonFilename);
+        setSelectedPokemon(pokemonFilename);
+        setIsFirstVisit(false);
+        
+        // Start onboarding for any Pokémon
+        if (pokemon === 'Bulbasaur' || pokemon === 'Squirtle' || pokemon === 'Charmander') {
+          setSelectedPokemonType(pokemon);
+          setIsOnboarding(true);
+          setOnboardingStep(0);
+        } else {
+          // Fallback case
+          setShowMainApp(true);
+        }
       }
     } catch (error) {
       console.error('Error saving Pokemon selection:', error);
@@ -1034,14 +1045,11 @@ const App = () => {
     loadSavedData();
   }, []);
 
-  // Update the updateCreditsAndConsistency function
+  // Update the updateCreditsAndConsistency function to handle all three Pokémon evolutions
   const updateCreditsAndConsistency = async (prevCredits) => {
     try {
       // Calculate new credits (5 per exercise)
       const newCredits = prevCredits + 5;
-      
-      console.log('Current Pokemon:', selectedPokemon);
-      console.log('Current Credits:', newCredits);
       
       // Save credits to AsyncStorage
       await AsyncStorage.setItem('credits', newCredits.toString());
@@ -1057,28 +1065,76 @@ const App = () => {
       
       // Update consistency state
       setConsistency(newConsistency);
-      
-      // Check for evolution thresholds (100 and 200 credits)
-      if ((prevCredits < 100 && newCredits >= 100) || (prevCredits < 200 && newCredits >= 200)) {
-        console.log('Evolution check triggered');
-        const evolvedPokemon = getEvolvedPokemon(selectedPokemon, newCredits);
-        console.log('Evolution result:', evolvedPokemon);
-        
-        if (evolvedPokemon !== selectedPokemon) {
-          console.log('Pokemon will evolve from', selectedPokemon, 'to', evolvedPokemon);
-          // Only show evolution video for Charmander's evolutions
-          if (selectedPokemon === 'charmander-r.png' || selectedPokemon === 'charmeleon.png') {
-            playEvolutionVideo();
-          } else {
-            // For other Pokemon, just update without video
-            setSelectedPokemon(evolvedPokemon);
-            await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
-          }
+
+      // Get current Pokemon from AsyncStorage to ensure we have the latest state
+      const currentPokemon = await AsyncStorage.getItem('selectedPokemon') || selectedPokemon;
+      console.log('Evolution check - Current Pokemon:', currentPokemon);
+      console.log('Evolution check - Current Credits:', newCredits);
+
+      // Check for Bulbasaur evolutions
+      if (currentPokemon === 'balbasaur.png') {
+        if (newCredits >= 100) {
+          const evolvedPokemon = 'Ivysaur.png';
+          console.log('Evolving Bulbasaur to Ivysaur at 100 credits');
+          setSelectedPokemon(evolvedPokemon);
+          await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
+        } else if (newCredits >= 200) {
+          const evolvedPokemon = 'Venasaur.png';
+          console.log('Evolving Bulbasaur to Venasaur at 200 credits');
+          setSelectedPokemon(evolvedPokemon);
+          await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
         }
+      } else if (currentPokemon === 'Ivysaur.png' && newCredits >= 200) {
+        const evolvedPokemon = 'Venasaur.png';
+        console.log('Evolving Ivysaur to Venasaur at 200 credits');
+        setSelectedPokemon(evolvedPokemon);
+        await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
       }
-      
-      console.log('Credits updated:', newCredits);
-      console.log('Consistency updated:', newConsistency);
+
+      // Check for Charmander evolutions
+      if (currentPokemon === 'charmander-r.png') {
+        if (newCredits >= 100) {
+          const evolvedPokemon = 'charmeleon.png';
+          console.log('Evolving Charmander to Charmeleon at 100 credits');
+          setSelectedPokemon(evolvedPokemon);
+          await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
+        } else if (newCredits >= 200) {
+          const evolvedPokemon = 'charizard.png';
+          console.log('Evolving Charmander to Charizard at 200 credits');
+          setSelectedPokemon(evolvedPokemon);
+          await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
+        }
+      } else if (currentPokemon === 'charmeleon.png' && newCredits >= 200) {
+        const evolvedPokemon = 'charizard.png';
+        console.log('Evolving Charmeleon to Charizard at 200 credits');
+        setSelectedPokemon(evolvedPokemon);
+        await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
+      }
+
+      // Check for Squirtle evolutions
+      if (currentPokemon === 'squirtle-.png') {
+        if (newCredits >= 100) {
+          const evolvedPokemon = 'wartortle.png';
+          console.log('Evolving Squirtle to Wartortle at 100 credits');
+          setSelectedPokemon(evolvedPokemon);
+          await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
+        } else if (newCredits >= 200) {
+          const evolvedPokemon = 'blastoise.png';
+          console.log('Evolving Squirtle to Blastoise at 200 credits');
+          setSelectedPokemon(evolvedPokemon);
+          await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
+        }
+      } else if (currentPokemon === 'wartortle.png' && newCredits >= 200) {
+        const evolvedPokemon = 'blastoise.png';
+        console.log('Evolving Wartortle to Blastoise at 200 credits');
+        setSelectedPokemon(evolvedPokemon);
+        await AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
+      }
+
+      // Log final state after evolution
+      const finalPokemon = await AsyncStorage.getItem('selectedPokemon');
+      console.log('Evolution check - Final Pokemon:', finalPokemon);
+      console.log('Evolution check - Final Credits:', newCredits);
     } catch (error) {
       console.error('Error updating credits and consistency:', error);
     }
@@ -1111,8 +1167,9 @@ const App = () => {
   const getEvolvedPokemon = (pokemon, currentCredits) => {
     console.log('Checking evolution for:', pokemon, 'at credits:', currentCredits);
     
-    // First evolution at 100 credits
-    if (currentCredits >= 100 && currentCredits < 200) {
+    // First evolution at 10 credits
+    if (currentCredits >= 10 && currentCredits < 20) {
+      console.log('Checking first evolution conditions');
       switch (pokemon) {
         case 'charmander-r.png':
           return 'charmeleon.png';
@@ -1123,8 +1180,9 @@ const App = () => {
       }
     }
     
-    // Second evolution at 200 credits
-    if (currentCredits >= 200) {
+    // Second evolution at 20 credits
+    if (currentCredits >= 20) {
+      console.log('Checking second evolution conditions');
       switch (pokemon) {
         case 'charmander-r.png':
         case 'charmeleon.png':
@@ -1138,6 +1196,7 @@ const App = () => {
       }
     }
     
+    console.log('No evolution conditions met, returning:', pokemon);
     return pokemon;
   };
 
@@ -1156,40 +1215,7 @@ const App = () => {
 
   // Function to play evolution video
   const playEvolutionVideo = () => {
-    setIsEvolving(true);
-    setEvolutionVideoVisible(true);
-  };
-
-  // Handle evolution animation completion
-  const onEvolutionVideoEnd = () => {
-    // Wait for 1 second on the last frame before closing
-    setTimeout(() => {
-      setEvolutionVideoVisible(false);
-      setIsEvolving(false);
-      
-      // Update the Pokemon to its evolved form
-      const evolvedPokemon = getEvolvedPokemon(selectedPokemon, credits);
-      if (evolvedPokemon !== selectedPokemon) {
-        setSelectedPokemon(evolvedPokemon);
-        // Save the evolved Pokemon to AsyncStorage
-        AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
-      }
-    }, 1000);
-  };
-
-  // Handle video errors
-  const onVideoError = (error) => {
-    console.error('Video playback error:', error);
-    // Close the modal if there's an error
-    setEvolutionVideoVisible(false);
-    setIsEvolving(false);
-    
-    // Still update the Pokemon even if the video fails
-    const evolvedPokemon = getEvolvedPokemon(selectedPokemon, credits);
-    if (evolvedPokemon !== selectedPokemon) {
-      setSelectedPokemon(evolvedPokemon);
-      AsyncStorage.setItem('selectedPokemon', evolvedPokemon);
-    }
+    setIsVideoLoading(true); // Set loading state when starting video
   };
 
   // Handle video load
@@ -1197,24 +1223,35 @@ const App = () => {
     setIsVideoLoading(false);
   };
 
-  // Add this function to get the correct Pokemon image
-  const getPokemonImage = (pokemon: string) => {
-    const evolvedPokemon = getEvolvedPokemon(pokemon, credits);
-    switch (evolvedPokemon) {
-      case 'Charmeleon':
+  // Update getPokemonImage to handle all Pokémon forms
+  const getPokemonImage = (pokemon: string | null) => {
+    if (!pokemon) {
+      console.error('No Pokemon selected');
+      return null;
+    }
+    
+    switch (pokemon) {
+      case 'charmander-r.png':
+        return require('./assets/images/Pokemons/charmander-r.png');
+      case 'charmeleon.png':
         return require('./assets/images/Pokemons/charmeleon.png');
-      case 'Ivysaur':
-        return require('./assets/images/Pokemons/Ivysaur.png');
-      case 'Wartortle':
-        return require('./assets/images/Pokemons/wartortle.png');
-      case 'Charmander':
-        return require('./assets/images/Pokemons/charmander-r.png');
-      case 'Bulbasaur':
+      case 'charizard.png':
+        return require('./assets/images/Pokemons/charizard.png');
+      case 'balbasaur.png':
         return require('./assets/images/Pokemons/balbasaur.png');
-      case 'Squirtle':
+      case 'squirtle-.png':
         return require('./assets/images/Pokemons/squirtle-.png');
+      case 'wartortle.png':
+        return require('./assets/images/Pokemons/wartortle.png');
+      case 'blastoise.png':
+        return require('./assets/images/Pokemons/blastoise.png');
+      case 'Ivysaur.png':
+        return require('./assets/images/Pokemons/Ivysaur.png');
+      case 'Venasaur.png':
+        return require('./assets/images/Pokemons/Venasaur.png');
       default:
-        return require('./assets/images/Pokemons/charmander-r.png');
+        console.error('Unknown Pokemon:', pokemon);
+        return null;
     }
   };
 
@@ -1238,28 +1275,28 @@ const App = () => {
               <Text style={styles.pokemonModalTitle}>CHOOSE YOUR STARTER POKEMON</Text>
               <View style={styles.pokemonOptionsContainer}>
                 <TouchableOpacity 
-                  style={[styles.pokemonOption, selectedPokemon === 'Bulbasaur' && styles.pokemonOptionSelected]}
+                  style={[styles.pokemonOption, selectedPokemon === 'balbasaur.png' && styles.pokemonOptionSelected]}
                   onPress={() => handlePokemonSelect('Bulbasaur')}>
                   <Image 
-                    source={getPokemonImage('Bulbasaur')}
+                    source={require('./assets/images/Pokemons/balbasaur.png')}
                     style={styles.pokemonOptionImage}
                   />
                   <Text style={styles.pokemonOptionText}>BULBASAUR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.pokemonOption, selectedPokemon === 'Squirtle' && styles.pokemonOptionSelected]}
+                  style={[styles.pokemonOption, selectedPokemon === 'squirtle-.png' && styles.pokemonOptionSelected]}
                   onPress={() => handlePokemonSelect('Squirtle')}>
                   <Image 
-                    source={getPokemonImage('Squirtle')}
+                    source={require('./assets/images/Pokemons/squirtle-.png')}
                     style={styles.pokemonOptionImage}
                   />
                   <Text style={styles.pokemonOptionText}>SQUIRTLE</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.pokemonOption, selectedPokemon === 'Charmander' && styles.pokemonOptionSelected]}
+                  style={[styles.pokemonOption, selectedPokemon === 'charmander-r.png' && styles.pokemonOptionSelected]}
                   onPress={() => handlePokemonSelect('Charmander')}>
                   <Image 
-                    source={getPokemonImage('Charmander')}
+                    source={require('./assets/images/Pokemons/charmander-r.png')}
                     style={styles.pokemonOptionImage}
                   />
                   <Text style={styles.pokemonOptionText}>CHARMANDER</Text>
@@ -1386,7 +1423,7 @@ const App = () => {
               try {
                 const exercise = new SMWorkoutLibrary.SMAssessmentExercise(
                     'JumpingJacks',
-                    10,
+                    60,
                     'JumpingJacks',
                     null,
                     [SMWorkoutLibrary.UIElement.RepsCounter, SMWorkoutLibrary.UIElement.Timer],
@@ -1438,7 +1475,7 @@ const App = () => {
             </View>
             <View style={styles.exerciseInfo}>
                 <Text style={styles.exerciseTitle}>Jumping Jacks</Text>
-                <Text style={styles.exerciseDetails}>20 Reps • 10 Sec</Text>
+                <Text style={styles.exerciseDetails}>20 Reps • 60 Sec</Text>
             </View>
             <TouchableOpacity style={styles.nextButton}>
               <View style={styles.arrowIcon}>
@@ -3308,7 +3345,7 @@ const App = () => {
       )}
 
       {/* Evolution Video Modal */}
-      <Modal
+      {/* <Modal
         visible={evolutionVideoVisible}
         transparent={true}
         animationType="fade"
@@ -3317,6 +3354,13 @@ const App = () => {
       >
         <View style={styles.evolutionVideoContainer}>
           <View style={styles.videoFrame}>
+            {isVideoLoading && (
+              <ActivityIndicator 
+                size="large" 
+                color="#FF6B6B" 
+                style={styles.videoLoader}
+              />
+            )}
             <Video
               ref={evolutionVideoRef}
               source={getEvolutionVideo()}
@@ -3327,13 +3371,11 @@ const App = () => {
               onLoad={onVideoLoad}
               repeat={false}
               controls={false}
-              paused={!evolutionVideoVisible}
               playInBackground={false}
-              playWhenInactive={false}
             />
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 };
