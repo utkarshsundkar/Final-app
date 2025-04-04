@@ -65,3 +65,4 @@ To reduce wait time we recommend to call `configure` on app launch.
 | Custom      | If Sency created a tailored assessment for you, you probably know it, and you should use this enum.                                                                            |                                                                                              |
 
 Having issues? [Contact us](mailto:support@sency.ai) and let us know what the problem is.
+# Android-v1
